@@ -71,6 +71,25 @@ ov nudge <agent-name>
 ov mail check --inject
 ```
 
+### Workspace (Multi-Repo) Quick Start
+
+```bash
+# Initialize workspace metadata at the shared root
+cd your-workspace-root
+ov workspace init
+
+# Register each overstory-enabled project
+ov workspace add ./project-a
+ov workspace add ./project-b
+
+# Start workspace orchestrator
+ov workspace start
+
+# Workspace-level mail/nudge must target explicit project recipients
+ov mail send --to project-a:coordinator --subject "Kickoff" --body "..." --type dispatch --agent workspace
+ov nudge project-a:coordinator "Check mail and process dispatch"
+```
+
 ## Commands
 
 Every command supports `--json` where noted. Global flags: `-q`/`--quiet`, `--timing`. ANSI colors respect `NO_COLOR`.
@@ -92,6 +111,13 @@ Every command supports `--json` where noted. Global flags: `-q`/`--quiet`, `--ti
 | `ov coordinator start` | Start persistent coordinator agent (`--attach`/`--no-attach`, `--watchdog`, `--monitor`) |
 | `ov coordinator stop` | Stop coordinator |
 | `ov coordinator status` | Show coordinator state |
+| `ov workspace init` | Initialize workspace metadata under `.overstory-workspace/` |
+| `ov workspace add <path>` | Register a project in workspace config (`--name`) |
+| `ov workspace remove <name>` | Remove a registered workspace project |
+| `ov workspace list` | List registered projects |
+| `ov workspace status` | Show workspace root + project health/availability |
+| `ov workspace start` | Start workspace orchestrator (`--attach`/`--no-attach`) |
+| `ov workspace stop` | Stop workspace orchestrator |
 | `ov supervisor start` | **[DEPRECATED]** Start per-project supervisor agent |
 | `ov supervisor stop` | **[DEPRECATED]** Stop supervisor |
 | `ov supervisor status` | **[DEPRECATED]** Show supervisor state |
@@ -101,11 +127,19 @@ Every command supports `--json` where noted. Global flags: `-q`/`--quiet`, `--ti
 | Command | Description |
 |---------|-------------|
 | `ov mail send` | Send a message (`--to`, `--subject`, `--body`, `--type`, `--priority`) |
+| `ov mail debug` | Show routing context/scope resolution for mail delivery (`--to`, `--from`, `--json`) |
 | `ov mail check` | Check inbox — unread messages (`--agent`, `--inject`, `--debounce`, `--json`) |
 | `ov mail list` | List messages with filters (`--from`, `--to`, `--unread`) |
 | `ov mail read <id>` | Mark message as read |
 | `ov mail reply <id>` | Reply in same thread (`--body`) |
 | `ov nudge <agent> [message]` | Send a text nudge to an agent (`--from`, `--force`, `--json`) |
+
+### Workspace Addressing Rules
+
+- In project scope, use bare recipients: `coordinator`, `lead-*`, `builder-*`, etc.
+- In workspace scope, use explicit project routing for project agents: `<project>:<agent>`.
+- Workspace exceptions: `workspace` (self-address) and group addresses (for example `@workspace`).
+- Use `ov mail debug --to <target> --from <sender> --json` to inspect routing decisions quickly.
 
 ### Task Groups
 
@@ -184,6 +218,14 @@ Instruction overlays + tool-call guards + the `ov` CLI turn your coding session 
 Coordinator (persistent orchestrator at project root)
   --> Supervisor (per-project team lead, depth 1)
         --> Workers: Scout, Builder, Reviewer, Merger (depth 2)
+```
+
+Workspace mode adds a top-level orchestrator for multi-repo coordination:
+
+```
+Workspace Orchestrator (workspace root)
+  --> Project Coordinator (project-a)
+  --> Project Coordinator (project-b)
 ```
 
 ### Agent Types
